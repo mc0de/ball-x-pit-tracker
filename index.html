@@ -28,14 +28,14 @@
       <div v-for="item in filtered(evolutions)" :key="item.name" @click="toggle(item)" class="flex p-3 bg-white/10 rounded-lg cursor-pointer hover:bg-white-20 transition border border-white/0" :class="{ 'border border-[#744427]': state[item.name] === true, 'grayscale': state[item.name] !== true }">
         <div class="flex flex-col w-full">
           <div class="flex w-full items-start">
-            <img :src="item.icon" :alt="item.name" :title="item.name" class="size-20 mr-3" />
+            <img :src="`icons/${item.name}.png`" :alt="item.name" :title="item.name" class="size-20 mr-3" />
             <span class="font-semibold">{{ item.name }}</span>
           </div>
 
           <div class="flex flex-col items-center mt-1">
             <div v-for="recipe in item.recipes" class="flex flex-row gap-2 bg-white/10 rounded px-3 py-2 my-0.5">
               <div v-for="(entry, index) in recipe" class="flex flex-row gap-2 items-center">
-                <img :src="base.filter(i => i.name === entry)[0].icon" class="size-16" :alt="entry" :title="entry" />
+                <img :src="`icons/${entry}.png`" class="size-16" :alt="entry" :title="entry" />
                 <span v-if="index < recipe.length - 1">&#x2715;</span>
               </div>
             </div>
@@ -54,14 +54,14 @@
       <div v-for="item in filtered(passives)" :key="item.name" @click="toggle(item)" class="flex p-3 bg-white/10 rounded-lg cursor-pointer hover:bg-white-20 transition border border-white/0" :class="{ 'border border-[#744427]': state[item.name] === true, 'grayscale': state[item.name] !== true }">
         <div class="flex flex-col w-full">
           <div class="flex w-full items-start">
-            <img :src="item.icon" :alt="item.name" :title="item.name" class="size-20 mr-3" />
+            <img :src="`icons/${item.name}.png`" :alt="item.name" :title="item.name" class="size-20 mr-3" />
             <span class="font-semibold">{{ item.name }}</span>
           </div>
 
           <div class="flex flex-col items-center mt-1">
             <div v-for="recipe in item.recipes" class="flex flex-row gap-2 bg-white/10 rounded px-3 py-2 my-0.5">
               <div v-for="(entry, index) in recipe" class="flex flex-row gap-2 items-center">
-                <img :src="base.filter(i => i.name === entry)[0].icon" class="size-16" :alt="entry" :title="entry" />
+                <img :src="`icons/${entry}.png`" class="size-16" :alt="entry" :title="entry" />
                 <span v-if="index < recipe.length - 1">&#x2715;</span>
               </div>
             </div>
