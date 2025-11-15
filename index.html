@@ -199,8 +199,11 @@ createApp({
     function collectedCount(list) { return list.filter(i => state[i.name]).length; }
     function filtered(list) {
       return list.filter(function(i) {
+        let a = i.recipes.flat().map(i => i.toLowerCase())
+
+
         return i.name.toLowerCase().includes(search.value.toLowerCase())
-          || i.recipes.flat().map(i => i.toLowerCase()).includes(search.value.toLowerCase())
+          || searchArray(a, search.value.toLowerCase()).length > 0;
       })
     }
 
@@ -210,6 +213,10 @@ createApp({
       const jsonStr = JSON.stringify(state);
       const compressed = pako.deflate(jsonStr);
       alert(compressed.toBase64());
+    }
+
+    function searchArray(array, searchTerm) {
+      return array.filter(item => item.includes(searchTerm));
     }
 
     function importData() {
