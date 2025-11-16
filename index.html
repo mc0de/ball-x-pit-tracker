@@ -72,7 +72,7 @@
     </div>
   </section>
 
-  <footer class="mt-8 text-gray-400">Storage key: <code>ballxpitChecklist.v1</code></footer>
+  <footer class="mt-8 text-gray-400">Storage key: <code>ballxpitChecklist.v1</code> • Export format: compact bitset (BX1)</footer>
 </div>
 
 <script>
@@ -160,10 +160,50 @@ createApp({
 
     function clearAll() { if(confirm('Clear all?')) { Object.keys(state).forEach(k => delete state[k]); save(); } }
 
+    // Helper: unified ordered list of items (stable indices)
+    function allItemNames() {
+      return evolutions.value.map(i => i.name).concat(passives.value.map(i => i.name));
+    }
+
+    // Helper: Base64URL encode/decode for small byte arrays
+    function b64urlEncode(bytes) {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+      return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
+    }
+    function b64urlDecode(str) {
+      let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      // pad to multiple of 4
+      while (b64.length % 4) b64 += '=';
+      const binary = atob(b64);
+      const out = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+      return out;
+    }
+
+    // New: compact bitset export (prefix BX1:)
     function exportData() {
-      const jsonStr = JSON.stringify(state);
-      const compressed = pako.deflate(jsonStr);
-      alert(compressed.toBase64());
+      const names = allItemNames();
+      const bitCount = names.length;
+      const byteCount = Math.ceil(bitCount / 8);
+      const bytes = new Uint8Array(byteCount);
+      for (let idx = 0; idx < bitCount; idx++) {
+        const name = names[idx];
+        if (state[name]) {
+          const byteIndex = (idx / 8) | 0;
+          const bitIndex = idx % 8;
+          bytes[byteIndex] |= (1 << bitIndex);
+        }
+      }
+      // Optional tiny header with length to allow future list growth without ambiguity
+      // Layout: [N (uint16 little-endian)] [bitset...]
+      const header = new Uint8Array(2 + bytes.length);
+      header[0] = bitCount & 0xFF;
+      header[1] = (bitCount >>> 8) & 0xFF;
+      header.set(bytes, 2);
+      const encoded = b64urlEncode(header);
+      alert(`BX1:${encoded}`);
     }
 
     function searchArray(array, searchTerm) {
@@ -172,7 +212,33 @@ createApp({
 
     function importData() {
       const input = prompt('Import the string:');
-      if(!input) return;
+      if (!input) return;
+      // Try compact BX1 first; fallback to legacy deflate+base64 JSON
+      if (input.startsWith('BX1:')) {
+        try {
+          const payload = input.slice(4);
+          const raw = b64urlDecode(payload);
+          const bitCount = raw[0] | (raw[1] << 8);
+          const names = allItemNames();
+          if (bitCount > names.length) {
+            throw new Error('Import expects more items than this build knows.');
+          }
+          const bytes = raw.subarray(2);
+          // Clear current state
+          Object.keys(state).forEach(k => delete state[k]);
+          for (let idx = 0; idx < bitCount; idx++) {
+            const byteIndex = (idx / 8) | 0;
+            const bitIndex = idx % 8;
+            const on = (bytes[byteIndex] >> bitIndex) & 1;
+            if (on) state[names[idx]] = true;
+          }
+          save();
+          alert('Imported successfully (BX1).');
+          return;
+        } catch (e) {
+          console.error('BX1 import failed, trying legacy...', e);
+        }
+      }
       try {
         const compressed = Uint8Array.fromBase64(input);
         const jsonStr = pako.inflate(compressed, { to: 'string' });
@@ -180,13 +246,14 @@ createApp({
         Object.keys(state).forEach(k => delete state[k]);
         Object.assign(state, data);
         save();
-        alert('Imported successfully.');
-      } catch(e) {
-        console.log(e)
+        alert('Imported successfully (legacy).');
+      } catch (e) {
+        console.error(e);
+        alert('Import failed. Check your string.');
       }
     }
 
-    return { evolutions, passives, state, search, toggle, collectedCount, filtered, clearAll, exportData, importData, base };
+    return { evolutions, passives, state, search, toggle, collectedCount, filtered, clearAll, exportData, importData };
   }
 }).mount('#app');
 </script>
